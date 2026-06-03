@@ -226,6 +226,12 @@
             transform: scale(0.97);
         }
 
+        .vote-btn.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
         .vote-btn.a-vote { background: #3e2020; border: 0.5px solid #ff6b6b; }
         .vote-btn.b-vote { background: #1f2c3a; border: 0.5px solid #4d9fff; }
 
@@ -275,6 +281,16 @@
 
         .vote-numbers .a { color: #ff6b6b; }
         .vote-numbers .b { color: #4d9fff; }
+
+        .my-vote-badge {
+            background: #ff7a45;
+            color: black;
+            font-size: 11px;
+            padding: 3px 10px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-top: 8px;
+        }
 
         .stats {
             display: flex;
@@ -443,6 +459,27 @@
             color: #a855f7;
             font-size: 14px;
         }
+
+        .toast-message {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #ff7a45;
+            color: black;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-size: 13px;
+            font-weight: 600;
+            z-index: 1100;
+            animation: fadeOut 2s ease forwards;
+        }
+
+        @keyframes fadeOut {
+            0% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            70% { opacity: 1; }
+            100% { opacity: 0; transform: translateX(-50%) translateY(20px); visibility: hidden; }
+        }
     </style>
 </head>
 <body>
@@ -481,15 +518,15 @@
             <h2>🥊 发起擂台</h2>
         </div>
         <div class="form-container" style="padding: 16px;">
-            <input class="form-input" id="caseTitle" placeholder="擂台标题，例：另一半偷偷看我的手机，该原谅吗？">
+            <input class="form-input" id="caseTitle" placeholder="擂台标题">
             <div class="form-side">
                 <div class="role a">🔴 我方立场</div>
-                <input class="form-input" id="myRole" placeholder="称呼" value="老婆">
+                <input class="form-input" id="myRole" placeholder="称呼" value="我方">
                 <textarea class="form-textarea" id="myView" rows="4" placeholder="描述你的观点..."></textarea>
             </div>
             <div class="form-side">
                 <div class="role b">🔵 对方立场</div>
-                <input class="form-input" id="opponentRole" placeholder="称呼" value="老公">
+                <input class="form-input" id="opponentRole" placeholder="称呼" value="对方">
                 <textarea class="form-textarea" id="opponentView" rows="4" placeholder="描述对方的观点..."></textarea>
             </div>
         </div>
@@ -514,13 +551,83 @@
 
     const categoriesList = ["全部", "感情观", "金钱观", "家事分工", "婆媳问题", "生活习惯", "社交界线", "其他"];
 
-    // 从 localStorage 加载数据
+    // 获取用户ID
+    function getUserId() {
+        let userId = localStorage.getItem('user_id');
+        if (!userId) {
+            userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            localStorage.setItem('user_id', userId);
+        }
+        return userId;
+    }
+
+    const currentUserId = getUserId();
+
+    function getUserVote(caseId) {
+        const votes = JSON.parse(localStorage.getItem('user_votes') || '{}');
+        return votes[`${currentUserId}_${caseId}`] || null;
+    }
+
+    function saveUserVote(caseId, side) {
+        const votes = JSON.parse(localStorage.getItem('user_votes') || '{}');
+        votes[`${currentUserId}_${caseId}`] = side;
+        localStorage.setItem('user_votes', JSON.stringify(votes));
+    }
+
+    function hasUserVoted(caseId) {
+        return getUserVote(caseId) !== null;
+    }
+
+    function getUserVotedSide(caseId) {
+        return getUserVote(caseId);
+    }
+
+    function showToast(message) {
+        const existingToast = document.querySelector('.toast-message');
+        if (existingToast) existingToast.remove();
+        
+        const toast = document.createElement('div');
+        toast.className = 'toast-message';
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            if (toast) toast.remove();
+        }, 2000);
+    }
+
+    // 投票函数
+    window.voteForCase = (id, side) => {
+        const c = cases.find(c => c.id === id);
+        if (!c) return;
+        
+        if (hasUserVoted(id)) {
+            const votedSide = getUserVotedSide(id);
+            const sideName = votedSide === 'A' ? 
+                (c.hideGender ? 'A方' : c.sideA.role) : 
+                (c.hideGender ? 'B方' : c.sideB.role);
+            showToast(`⚠️ 你已经支持过 ${sideName} 了，不能重复投票！`);
+            return;
+        }
+        
+        c.votes[side]++;
+        saveData();
+        saveUserVote(id, side);
+        
+        const sideName = side === 'A' ? 
+            (c.hideGender ? 'A方' : c.sideA.role) : 
+            (c.hideGender ? 'B方' : c.sideB.role);
+        showToast(`✅ 你支持了 ${sideName}！`);
+        
+        refreshDetail(id);
+    };
+
     function loadData() {
         const saved = localStorage.getItem('cases');
         if (saved && saved !== '[]') {
             cases = JSON.parse(saved);
         } else {
-            // 示例案例
+            // 两个完整的示例案例
             cases = [
                 {
                     id: "sample1",
@@ -529,6 +636,18 @@
                     hideGender: false,
                     sideA: { role: "老婆", text: "我发现你趁我洗澡的时候翻我手机，看了我的微信聊天记录和相册。这不是第一次了，上次你说不会再犯，结果今天又被我抓到。两个人在一起最重要的就是信任，你这样做让我觉得自己像个犯人，随时被监视。我又没有做对不起你的事，你为什么要这样？如果你有什么不安，可以直接问我，而不是用这种方式。这次我真的很难过，感觉我们的信任基础被你亲手破坏了。" },
                     sideB: { role: "老公", text: "我知道翻你手机不对，但我真的是因为太在乎你了。上次看到你和一个男同事聊天很频繁，我就一直心里不舒服，但又不敢问，怕你觉得我小心眼。我只是想确认一下，没有别的意思。我知道我错了，但这不也是因为爱你才这样吗？而且我也没有做什么过分的事，就翻了翻，又没删除什么。你就不能理解一下我的心情吗？我保证这是最后一次，真的。" },
+                    votes: { A: 0, B: 0 },
+                    comments: [],
+                    createdAt: Date.now() - 86400000,
+                    aiVerdict: null
+                },
+                {
+                    id: "sample2",
+                    title: "我年薪200万，该不该帮月薪4万的男友还房贷？",
+                    category: "金钱观",
+                    hideGender: false,
+                    sideA: { role: "女友", text: "我年薪200万，男友月薪只有4万。我们交往两年了，他去年买了房，每月房贷要缴3万5，他薪水扣掉房贷只剩5千块，连基本生活都有问题。他最近开口希望我帮他还房贷，说反正你赚那么多，我们以后要结婚，房子也是我们一起住。我不是不愿意帮忙，但我觉得他应该自己承担自己的选择。当初买房时也没跟我商量，现在却要我出钱。而且我担心一旦开始帮他还，以后就变成理所当然。我可以负担约会开销，也可以出生活费，但房贷是他名下的资产，我真的该帮他出吗？" },
+                    sideB: { role: "男友", text: "我真的觉得很委屈。你知道我买这个房子是为了我们的未来，虽然薪水不高，但我拼命工作也想给你一个家。现在房贷压力这么大，我每天只敢吃60块的便当，连机车坏了都不敢修。你年薪200万，买一个包就十几万，帮我还一点房贷对你来说真的那么难吗？我们不是说好要结婚的吗？那这个家不也是你的家吗？我不是要你全部负担，只是希望你体谅一下。看到你每天过得那么轻松，我却快被房贷压垮，这种感觉真的很差。如果你真的爱我，应该愿意一起承担吧？" },
                     votes: { A: 0, B: 0 },
                     comments: [],
                     createdAt: Date.now(),
@@ -543,21 +662,17 @@
         localStorage.setItem('cases', JSON.stringify(cases));
     }
 
-    function showLoading(message = "AI裁判思考中，请稍候...") {
+    function showLoading(message) {
         let overlay = document.getElementById('loadingOverlay');
         if (!overlay) {
             overlay = document.createElement('div');
             overlay.id = 'loadingOverlay';
             overlay.className = 'loading-overlay';
-            overlay.innerHTML = `
-                <div class="spinner"></div>
-                <p id="loadingMessage">${message}</p>
-            `;
+            overlay.innerHTML = `<div class="spinner"></div><p>${message}</p>`;
             document.body.appendChild(overlay);
         } else {
-            const msgEl = document.getElementById('loadingMessage');
-            if (msgEl) msgEl.innerText = message;
             overlay.style.display = 'flex';
+            overlay.querySelector('p').textContent = message;
         }
     }
 
@@ -566,50 +681,23 @@
         if (overlay) overlay.style.display = 'none';
     }
 
-    function hasUserVoted(caseId) {
-        const votedCases = JSON.parse(localStorage.getItem('voted_cases') || '{}');
-        return votedCases[caseId] === true;
-    }
-
-    function markUserVoted(caseId) {
-        const votedCases = JSON.parse(localStorage.getItem('voted_cases') || '{}');
-        votedCases[caseId] = true;
-        localStorage.setItem('voted_cases', JSON.stringify(votedCases));
-    }
-
-    window.voteForCase = (id, side) => {
-        const c = cases.find(c => c.id === id);
-        if (c) {
-            c.votes[side]++;
-            saveData();
-            markUserVoted(id);
-            refreshDetail(id);
-        }
-    };
-
     async function callDeepSeekAI(sideAText, sideBText, roleA, roleB, title) {
         if (!DEEPSEEK_API_KEY || DEEPSEEK_API_KEY === "YOUR_API_KEY_HERE") {
             return {
-                verdict: "⚠️ 请先在代码中配置 DeepSeek API Key！\n\n将代码开头的 DEEPSEEK_API_KEY 替换成你的真实密钥。\n获取地址：platform.deepseek.com/api_keys",
-                suggestion: "新用户有免费额度，快去注册吧！",
+                verdict: "⚠️ 请先在代码中配置 DeepSeek API Key！",
+                suggestion: "获取地址：platform.deepseek.com/api_keys",
                 error: true
             };
         }
 
-        const prompt = `你是一位公正、理性、有同理心的吵架调解AI。请分析以下情侣/夫妻争吵案例，给出判决。
+        const prompt = `你是一位公正的吵架调解AI。请分析以下案例：
 
-【案例题目】${title}
+【题目】${title}
 【${roleA}的观点】${sideAText}
 【${roleB}的观点】${sideBText}
 
-请按以下格式输出（用JSON格式）：
-{
-    "verdict": "判决结果（200字以内，指出谁更有道理，为什么）",
-    "suggestion": "和解建议（150字以内，给出具体可执行的建议）",
-    "winner": "支持哪一方"
-}
-
-注意：要客观中立，不偏袒任何一方，基于论据逻辑和情感需求分析。`;
+请用JSON格式输出：
+{"verdict": "判决结果（200字以内）", "suggestion": "和解建议（150字以内）"}`;
 
         try {
             const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
@@ -620,55 +708,26 @@
                 },
                 body: JSON.stringify({
                     model: 'deepseek-chat',
-                    messages: [
-                        { role: 'system', content: '你是一个公正的婚姻家庭调解专家，善于理性分析和给出建设性建议。' },
-                        { role: 'user', content: prompt }
-                    ],
+                    messages: [{ role: 'user', content: prompt }],
                     temperature: 0.7,
                     max_tokens: 800
                 })
             });
 
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error?.message || 'API请求失败');
-            }
-
             const data = await response.json();
             const content = data.choices[0].message.content;
-            
             const jsonMatch = content.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-                return JSON.parse(jsonMatch[0]);
-            }
-            
-            return {
-                verdict: content,
-                suggestion: "建议双方多沟通，互相理解。",
-                winner: "待定"
-            };
+            if (jsonMatch) return JSON.parse(jsonMatch[0]);
+            return { verdict: content, suggestion: "建议双方多沟通" };
         } catch (error) {
-            console.error('AI调用失败:', error);
-            return {
-                verdict: `❌ AI分析失败: ${error.message}`,
-                suggestion: "请检查API Key是否正确，或稍后重试。",
-                error: true
-            };
+            return { verdict: `❌ 分析失败: ${error.message}`, suggestion: "请稍后重试" };
         }
     }
 
     async function generateAIVerdictForCase(caseItem) {
         const roleA = caseItem.hideGender ? "A方" : caseItem.sideA.role;
         const roleB = caseItem.hideGender ? "B方" : caseItem.sideB.role;
-        
-        const result = await callDeepSeekAI(
-            caseItem.sideA.text, 
-            caseItem.sideB.text, 
-            roleA, 
-            roleB, 
-            caseItem.title
-        );
-        
+        const result = await callDeepSeekAI(caseItem.sideA.text, caseItem.sideB.text, roleA, roleB, caseItem.title);
         caseItem.aiVerdict = result;
         saveData();
         return result;
@@ -683,57 +742,33 @@
         return { total, aPercent, bPercent, displayA, displayB };
     }
 
-    function renderVoteArea(c, stats, hasVoted) {
+    function renderVoteArea(c, stats, hasVoted, userVotedSide) {
         if (hasVoted) {
-            const totalVotes = stats.total;
-            const aWidth = totalVotes === 0 ? 50 : (c.votes.A / totalVotes * 100);
-            const bWidth = totalVotes === 0 ? 50 : (c.votes.B / totalVotes * 100);
+            const aWidth = stats.total === 0 ? 50 : (c.votes.A / stats.total * 100);
+            const bWidth = stats.total === 0 ? 50 : (c.votes.B / stats.total * 100);
+            const votedText = userVotedSide === 'A' ? `你支持了 ${stats.displayA}` : `你支持了 ${stats.displayB}`;
             return `
                 <div class="vote-stats">
-                    <div class="vote-bar">
-                        <div class="vote-bar-a" style="width: ${aWidth}%;"></div>
-                        <div class="vote-bar-b" style="width: ${bWidth}%;"></div>
-                    </div>
-                    <div class="vote-numbers">
-                        <span class="a">🔥 ${escapeHtml(stats.displayA)}: ${c.votes.A}票 (${stats.aPercent}%)</span>
-                        <span class="b">💧 ${escapeHtml(stats.displayB)}: ${c.votes.B}票 (${stats.bPercent}%)</span>
-                    </div>
-                    <div style="font-size: 11px; color: #ff7a45; margin-top: 8px;">
-                        ✅ 您已投票 · 感谢参与
-                    </div>
+                    <div class="vote-bar"><div class="vote-bar-a" style="width: ${aWidth}%;"></div><div class="vote-bar-b" style="width: ${bWidth}%;"></div></div>
+                    <div class="vote-numbers"><span class="a">🔥 ${stats.displayA}: ${c.votes.A}票 (${stats.aPercent}%)</span><span class="b">💧 ${stats.displayB}: ${c.votes.B}票 (${stats.bPercent}%)</span></div>
+                    <div class="my-vote-badge">✅ ${votedText}</div>
                 </div>
             `;
         } else {
-            return `
-                <div class="vote-stats-hidden">
-                    <span style="opacity: 0.6;">🔒 投票后可查看当前票数</span>
-                    <div style="font-size: 12px; color: #ff7a45; margin-top: 6px;">
-                        快来支持你认为有理的一方！
-                    </div>
-                </div>
-            `;
+            return `<div class="vote-stats-hidden">🔒 投票后可查看当前票数<br><span style="font-size:12px;">每人限投一票，请谨慎选择！</span></div>`;
         }
     }
 
     window.likeComment = (id, idx) => {
         const c = cases.find(c => c.id === id);
-        if (c && c.comments[idx]) { 
-            c.comments[idx].likes++; 
-            saveData(); 
-            refreshDetail(id); 
-        }
+        if (c && c.comments[idx]) { c.comments[idx].likes++; saveData(); refreshDetail(id); }
     };
 
     window.addComment = (id) => {
         const ta = document.getElementById(`comment-${id}`);
         if (!ta.value.trim()) return;
         const c = cases.find(c => c.id === id);
-        if (c) { 
-            c.comments.push({ text: ta.value.trim(), likes: 0 }); 
-            ta.value = ''; 
-            saveData(); 
-            refreshDetail(id); 
-        }
+        if (c) { c.comments.push({ text: ta.value.trim(), likes: 0 }); ta.value = ''; saveData(); refreshDetail(id); }
     };
 
     window.refreshAIDetail = async (id) => {
@@ -759,6 +794,7 @@
         
         const stats = getCaseStats(c);
         const hasVoted = hasUserVoted(id);
+        const userVotedSide = getUserVotedSide(id);
         
         if (!c.aiVerdict) {
             showLoading("AI裁判分析中...");
@@ -766,26 +802,25 @@
             hideLoading();
         }
         
-        const ai = c.aiVerdict || { verdict: "分析中...", suggestion: "请稍后" };
+        const ai = c.aiVerdict || { verdict: "分析中...", suggestion: "" };
         
-        const container = document.getElementById("caseDetailContainer");
-        container.innerHTML = `
-            <div class="card" style="cursor: default;">
+        document.getElementById("caseDetailContainer").innerHTML = `
+            <div class="card" style="cursor:default;">
                 <div class="vs-title">${escapeHtml(c.title)}</div>
                 <div class="opinions">
                     <div class="opinion"><div class="role a">🔴 ${escapeHtml(stats.displayA)}</div><div class="text">${escapeHtml(c.sideA.text)}</div></div>
                     <div class="opinion"><div class="role b">🔵 ${escapeHtml(stats.displayB)}</div><div class="text">${escapeHtml(c.sideB.text)}</div></div>
                 </div>
                 <div class="vote-area">
-                    <button class="vote-btn a-vote" onclick="voteForCase('${c.id}','A')">🔥 支持 ${escapeHtml(stats.displayA)}</button>
-                    <button class="vote-btn b-vote" onclick="voteForCase('${c.id}','B')">💧 支持 ${escapeHtml(stats.displayB)}</button>
+                    <button class="vote-btn a-vote ${hasVoted ? 'disabled' : ''}" onclick="voteForCase('${c.id}','A')" ${hasVoted ? 'disabled' : ''}>🔥 支持 ${escapeHtml(stats.displayA)}</button>
+                    <button class="vote-btn b-vote ${hasVoted ? 'disabled' : ''}" onclick="voteForCase('${c.id}','B')" ${hasVoted ? 'disabled' : ''}>💧 支持 ${escapeHtml(stats.displayB)}</button>
                 </div>
-                ${renderVoteArea(c, stats, hasVoted)}
+                ${renderVoteArea(c, stats, hasVoted, userVotedSide)}
                 <div class="ai-verdict">
                     <div class="ai-header"><div class="ai-icon">🤖</div><h4>DeepSeek AI 裁判</h4></div>
-                    <div class="verdict-text">📜 ${escapeHtml(ai.verdict || '分析中...')}</div>
+                    <div class="verdict-text">📜 ${escapeHtml(ai.verdict)}</div>
                     ${ai.suggestion ? `<div class="ai-suggestion">💡 和解建议：${escapeHtml(ai.suggestion)}</div>` : ''}
-                    <button class="ai-btn" onclick="refreshAIDetail('${c.id}')">🔄 重新让AI分析</button>
+                    <button class="ai-btn" onclick="refreshAIDetail('${c.id}')">🔄 重新分析</button>
                 </div>
                 <div class="comment-section">
                     <div>🗣️ 观众劝架区</div>
@@ -825,23 +860,19 @@
             const stats = getCaseStats(c);
             const hasVoted = hasUserVoted(c.id);
             const voteDisplay = hasVoted ? `📊 ${stats.aPercent}% : ${stats.bPercent}%` : `🔒 投票后可见结果`;
-            return `
-                <div class="card" data-id="${c.id}">
-                    <div class="vs-title">${escapeHtml(c.title)}</div>
-                    <div class="opinions">
-                        <div class="opinion"><div class="role a">🔴 ${escapeHtml(stats.displayA)}</div><div class="text">${escapeHtml(c.sideA.text.substring(0,60))}...</div></div>
-                        <div class="opinion"><div class="role b">🔵 ${escapeHtml(stats.displayB)}</div><div class="text">${escapeHtml(c.sideB.text.substring(0,60))}...</div></div>
-                    </div>
-                    <div class="stats">${voteDisplay} &nbsp; 💬 ${c.comments?.length || 0}</div>
-                    <div class="enter-detail">⚡ 查看DeepSeek AI裁判判决 →</div>
+            return `<div class="card" data-id="${c.id}">
+                <div class="vs-title">${escapeHtml(c.title)}</div>
+                <div class="opinions">
+                    <div class="opinion"><div class="role a">🔴 ${escapeHtml(stats.displayA)}</div><div class="text">${escapeHtml(c.sideA.text.substring(0,55))}...</div></div>
+                    <div class="opinion"><div class="role b">🔵 ${escapeHtml(stats.displayB)}</div><div class="text">${escapeHtml(c.sideB.text.substring(0,55))}...</div></div>
                 </div>
-            `;
+                <div class="stats">${voteDisplay} &nbsp; 💬 ${c.comments?.length || 0}</div>
+                <div class="enter-detail">⚡ 查看AI裁判判决 →</div>
+            </div>`;
         }).join('');
         
-        // 绑定点击事件
         document.querySelectorAll('.card[data-id]').forEach(el => {
             el.addEventListener('click', (e) => {
-                // 防止点击按钮时触发
                 if (e.target.tagName === 'BUTTON') return;
                 openDetail(el.dataset.id);
             });
@@ -882,16 +913,11 @@
         });
     }
 
-    function showForm() { 
-        document.getElementById("createFormPage").classList.add("active"); 
-    }
-    
-    function hideForm() { 
-        document.getElementById("createFormPage").classList.remove("active"); 
-    }
+    function showForm() { document.getElementById("createFormPage").classList.add("active"); }
+    function hideForm() { document.getElementById("createFormPage").classList.remove("active"); }
 
-    async function submitCase(event) {
-        if (event) event.preventDefault();
+    async function submitCase(e) {
+        if (e) e.preventDefault();
         
         const title = document.getElementById("caseTitle").value.trim();
         const myRole = document.getElementById("myRole").value.trim() || "我方";
@@ -906,7 +932,7 @@
         
         const submitBtn = document.getElementById("submitCaseBtn");
         submitBtn.disabled = true;
-        submitBtn.textContent = "⏳ AI分析中，请稍候...";
+        submitBtn.textContent = "⏳ AI分析中...";
         
         const newCase = {
             id: Date.now().toString(),
@@ -923,9 +949,8 @@
         
         cases.unshift(newCase);
         saveData();
-        
         hideForm();
-        showLoading("AI裁判正在分析您的案件...");
+        showLoading("AI裁判分析中...");
         
         if (DEEPSEEK_API_KEY && DEEPSEEK_API_KEY !== "YOUR_API_KEY_HERE") {
             await generateAIVerdictForCase(newCase);
@@ -935,7 +960,6 @@
         renderCases();
         await openDetail(newCase.id);
         
-        // 清空表单
         document.getElementById("caseTitle").value = "";
         document.getElementById("myView").value = "";
         document.getElementById("opponentView").value = "";
@@ -953,9 +977,7 @@
     document.getElementById("openCreateModalBtn").addEventListener("click", showForm);
     document.getElementById("closeFormBtn").addEventListener("click", hideForm);
     document.getElementById("closeDetailBtn").addEventListener("click", closeDetail);
-    
-    const submitBtn = document.getElementById("submitCaseBtn");
-    submitBtn.addEventListener("click", submitCase);
+    document.getElementById("submitCaseBtn").addEventListener("click", submitCase);
 </script>
 </body>
 </html>
