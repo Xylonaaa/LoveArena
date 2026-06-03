@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>吵架擂台 · 擂台伴</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #000000;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            padding: 0 0 80px 0;
+        }
+
+        .app {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #000000;
+            min-height: 100vh;
+            color: #e7e7e7;
+        }
+
+        /* 頂部導航 */
+        .header {
+            position: sticky;
+            top: 0;
+            background-color: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(10px);
+            padding: 12px 16px;
+            border-bottom: 0.5px solid #2c2c2c;
+            z-index: 10;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #ff4d4d, #ff9f4d);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        /* 發起按鈕 */
+        .create-btn-wrap {
+            padding: 12px 16px 4px;
+        }
+        .create-btn {
+            background: linear-gradient(135deg, #ff4d4d 0%, #ff7a45 50%, #ff9f4d 100%);
+            color: white;
+            border: none;
+            padding: 14px 18px;
+            border-radius: 24px;
+            font-size: 16px;
+            font-weight: 700;
+            width: 100%;
+            cursor: pointer;
+            transition: transform 0.12s ease, box-shadow 0.12s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            box-shadow: 0 4px 20px rgba(255, 77, 77, 0.35), 0 0 0 0.5px rgba(255, 159, 77, 0.4);
+            letter-spacing: -0.2px;
+        }
+        .create-btn-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.22);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+        .create-btn-text {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 2px;
+            text-align: left;
+        }
+        .create-btn-text strong {
+            font-size: 16px;
+            font-weight: 700;
+        }
+        .create-btn-text span {
+            font-size: 12px;
+            font-weight: 500;
+            opacity: 0.9;
+        }
+        .create-btn:active {
+            transform: scale(0.98);
+            box-shadow: 0 2px 12px rgba(255, 77, 77, 0.25);
+        }
+
+        /* 分類捲動區 */
+        .categories {
+            padding: 8px 16px;
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 0.5px solid #2c2c2c;
+        }
+        .categories::-webkit-scrollbar {
+            display: none;
+        }
+        .cat-item {
+            background: #1a1a1a;
+            padding: 6px 16px;
+            border-radius: 30px;
+            font-size: 14px;
+            color: #b0b0b0;
+            cursor: pointer;
+            transition: all 0.1s;
+        }
+        .cat-item.active {
+            background: #ffffff;
+            color: #000000;
+            font-weight: 600;
+        }
+
+        /* 熱門/最新 切換 */
+        .tabs {
+            display: flex;
+            gap: 24px;
+            padding: 12px 16px;
+            border-bottom: 0.5px solid #2c2c2c;
+        }
+        .tab {
+            font-size: 16px;
+            font-weight: 600;
+            color: #71767b;
+            cursor: pointer;
+            padding-bottom: 8px;
+        }
+        .tab.active {
+            color: #ff7a45;
+            border-bottom: 2px solid #ff7a45;
+        }
+
+        /* 擂台卡片 */
+        .card {
+            background-color: #121212;
+            margin: 12px 16px;
+            border-radius: 24px;
+            padding: 16px;
+            border: 0.5px solid #2c2c2c;
+            transition: all 0.1s;
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .category-badge {
+            background: #2c2c2c;
+            padding: 4px 12px;
+            border-radius: 30px;
+            font-size: 12px;
+            color: #ff9f4d;
+        }
+        .time {
+            font-size: 12px;
+            color: #71767b;
+        }
+        .vs-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin: 8px 0;
+        }
+        .participants {
+            font-size: 13px;
+            color: #a0a0a0;
+            margin-bottom: 12px;
+        }
+        .opinions {
+            display: flex;
+            gap: 12px;
+            margin: 12px 0;
+        }
+        .opinion {
+            flex: 1;
+            background: #1e1e1e;
+            padding: 12px;
+            border-radius: 20px;
+        }
+        .opinion .role {
+            font-weight: 700;
+            font-size: 14px;
+            margin-bottom: 6px;
+        }
+        .opinion .role.a { color: #ff6b6b; }
+        .opinion .role.b { color: #4d9fff; }
+        .opinion .text {
+            font-size: 14px;
+            line-height: 1.4;
+            color: #dddddd;
+        }
+        .vote-area {
+            display: flex;
+            gap: 12px;
+            margin: 12px 0;
+        }
+        .vote-btn {
+            flex: 1;
+            background: #252525;
+            border: none;
+            padding: 10px;
+            border-radius: 40px;
+            color: white;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: 0.05s linear;
+        }
+        .vote-btn:active { opacity: 0.7; }
+        .vote-btn.a-vote { background: #3a1e1e; border: 0.5px solid #ff6b6b; }
+        .vote-btn.b-vote { background: #1e2a3a; border: 0.5px solid #4d9fff; }
+        .stats {
+            display: flex;
+            gap: 16px;
+            margin-top: 12px;
+            font-size: 13px;
+            color: #71767b;
+        }
+        .comment-preview {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 0.5px solid #2c2c2c;
+            font-size: 13px;
+            color: #a0a0a0;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .card-preview {
+            cursor: pointer;
+        }
+        .card-preview:active {
+            opacity: 0.92;
+        }
+        .opinion .text.preview {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .enter-detail {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 0.5px solid #2c2c2c;
+            font-size: 14px;
+            color: #ff7a45;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        /* 擂台詳情頁 */
+        .detail-page {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #000000;
+            z-index: 90;
+            overflow-y: auto;
+            display: none;
+        }
+        .detail-page.active {
+            display: block;
+        }
+        .detail-page .app {
+            padding-bottom: 40px;
+        }
+
+        /* 留言抽屜簡單區 */
+        .comment-section {
+            margin-top: 16px;
+            background: #0e0e0e;
+            border-radius: 20px;
+            padding: 12px;
+        }
+        .single-comment {
+            font-size: 13px;
+            padding: 8px 0;
+            border-bottom: 0.5px solid #252525;
+            display: flex;
+            justify-content: space-between;
+        }
+        .like-btn {
+            background: none;
+            border: none;
+            color: #ff6b6b;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .peace-king {
+            background: #f5a62320;
+            color: #f5a623;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 30px;
+            margin-left: 8px;
+        }
+        textarea {
+            width: 100%;
+            background: #1f1f1f;
+            border: 0.5px solid #3a3a3a;
+            border-radius: 20px;
+            padding: 10px;
+            color: white;
+            font-size: 13px;
+            margin-top: 8px;
+            resize: none;
+        }
+        .small-btn {
+            background: #ff7a45;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 30px;
+            color: black;
+            font-weight: 600;
+            font-size: 12px;
+            margin-top: 6px;
+            cursor: pointer;
+        }
+
+        /* 子頁共用頂部（詳情 / 發布） */
+        .sub-header {
+            position: sticky;
+            top: 0;
+            background-color: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(10px);
+            padding: 12px 16px;
+            border-bottom: 0.5px solid #2c2c2c;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 10;
+        }
+        .form-back-btn {
+            background: #1a1a1a;
+            border: 0.5px solid #2c2c2c;
+            color: #ff7a45;
+            font-size: 20px;
+            line-height: 1;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: background 0.1s;
+        }
+        .form-back-btn:active {
+            background: #252525;
+        }
+        .sub-header h2 {
+            font-size: 22px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #ff4d4d, #ff9f4d);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        /* 表單頁面（與首頁統一） */
+        .form-page {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #000000;
+            z-index: 100;
+            overflow-y: auto;
+            display: none;
+        }
+        .form-page.active {
+            display: block;
+        }
+        .form-page .app {
+            padding-bottom: 100px;
+        }
+        .form-container {
+            padding: 8px 0 24px;
+        }
+        .form-intro {
+            margin: 12px 16px;
+            padding: 14px 16px;
+            background: #121212;
+            border-radius: 20px;
+            border: 0.5px solid #2c2c2c;
+            font-size: 14px;
+            color: #a0a0a0;
+            line-height: 1.5;
+        }
+        .form-intro strong {
+            color: #e7e7e7;
+            display: block;
+            margin-bottom: 4px;
+            font-size: 15px;
+        }
+        .form-card {
+            background-color: #121212;
+            margin: 12px 16px;
+            border-radius: 24px;
+            padding: 16px;
+            border: 0.5px solid #2c2c2c;
+        }
+        .form-card-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: #e7e7e7;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .form-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #a0a0a0;
+            margin-bottom: 8px;
+            display: block;
+        }
+        .form-hint {
+            font-size: 12px;
+            color: #71767b;
+            margin-top: 8px;
+            line-height: 1.4;
+        }
+        .chip-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .chip {
+            background: #1a1a1a;
+            padding: 10px 14px;
+            border-radius: 30px;
+            font-size: 13px;
+            color: #b0b0b0;
+            cursor: pointer;
+            border: 0.5px solid #2c2c2c;
+            transition: all 0.12s;
+            user-select: none;
+        }
+        .chip.active {
+            background: linear-gradient(135deg, #ff4d4d22, #ff9f4d22);
+            border-color: #ff7a45;
+            color: #ff9f4d;
+            font-weight: 600;
+        }
+        .chip.full-width {
+            flex: 1 1 100%;
+            text-align: center;
+        }
+        .form-input,
+        .form-textarea,
+        .form-select {
+            width: 100%;
+            background: #1e1e1e;
+            border: 0.5px solid #3a3a3a;
+            border-radius: 16px;
+            padding: 12px;
+            color: #ffffff;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+            line-height: 1.45;
+        }
+        .form-input:focus,
+        .form-textarea:focus,
+        .form-select:focus {
+            outline: none;
+            border-color: #ff7a45;
+            box-shadow: 0 0 0 2px rgba(255, 122, 69, 0.2);
+        }
+        .form-input::placeholder,
+        .form-textarea::placeholder {
+            color: #71767b;
+        }
+        .form-select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2371767b' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 14px center;
+            padding-right: 36px;
+        }
+        .form-side {
+            background: #1e1e1e;
+            border-radius: 20px;
+            padding: 14px;
+            margin-bottom: 12px;
+        }
+        .form-side:last-child {
+            margin-bottom: 0;
+        }
+        .form-side.side-a {
+            border: 0.5px solid rgba(255, 107, 107, 0.35);
+        }
+        .form-side.side-b {
+            border: 0.5px solid rgba(77, 159, 255, 0.35);
+        }
+        .form-side .side-label {
+            font-weight: 700;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        .form-side.side-a .side-label { color: #ff6b6b; }
+        .form-side.side-b .side-label { color: #4d9fff; }
+        .form-side .form-input {
+            margin-bottom: 10px;
+            background: #141414;
+        }
+        .form-side .form-textarea {
+            background: #141414;
+            min-height: 120px;
+        }
+        .form-footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+            background: linear-gradient(to top, #000 70%, transparent);
+            z-index: 101;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .submit-btn {
+            background: linear-gradient(135deg, #ff4d4d 0%, #ff7a45 50%, #ff9f4d 100%);
+            width: 100%;
+            padding: 16px 20px;
+            border: none;
+            border-radius: 24px;
+            color: white;
+            font-weight: 700;
+            font-size: 17px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 4px 24px rgba(255, 77, 77, 0.4);
+            transition: transform 0.12s ease, box-shadow 0.12s ease;
+        }
+        .submit-btn:active {
+            transform: scale(0.98);
+            box-shadow: 0 2px 14px rgba(255, 77, 77, 0.3);
+        }
+        .submit-btn-icon {
+            font-size: 20px;
+        }
+        input[type="radio"].sr-only {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+<div class="app">
+    <div class="header">
+        <h1>🥊 吵架擂台</h1>
+    </div>
+
+    <div class="create-btn-wrap">
+        <button class="create-btn" id="openCreateModalBtn" type="button">
+            <span class="create-btn-icon">⚡</span>
+            <span class="create-btn-text">
+                <strong>發起擂台</strong>
+                <span>寫下雙方觀點，讓大家來評理</span>
+            </span>
+        </button>
+    </div>
+
+    <!-- 分類過濾 -->
+    <div class="categories" id="categoryList"></div>
+
+    <!-- 熱門/最新 -->
+    <div class="tabs">
+        <div class="tab active" data-sort="hot">🔥 熱門</div>
+        <div class="tab" data-sort="new">✨ 最新</div>
+    </div>
+
+    <!-- 擂台列表 -->
+    <div id="caseListContainer"></div>
+</div>
+
+<!-- 擂台詳情頁（浮層） -->
+<div id="caseDetailPage" class="detail-page">
+    <div class="app">
+        <div class="sub-header">
+            <button class="form-back-btn" id="closeDetailBtn" type="button" aria-label="返回">←</button>
+            <h2>擂台詳情</h2>
+        </div>
+        <div id="caseDetailContainer"></div>
+    </div>
+</div>
+
+<!-- 建立擂台表單頁面（浮層） -->
+<div id="createFormPage" class="form-page">
+    <div class="app">
+        <div class="sub-header">
+            <button class="form-back-btn" id="closeFormBtn" type="button" aria-label="返回">←</button>
+            <h2>🥊 發起擂台</h2>
+        </div>
+        <div class="form-container">
+            <div class="form-intro">
+                <strong>讓大家來評理</strong>
+                填寫雙方觀點與擂台標題，發布後會出現在首頁熱門列表。
+            </div>
+
+            <div class="form-card">
+                <div class="form-card-title">📋 擂台標題</div>
+                <input type="text" class="form-input" id="caseTitle" placeholder="例：婚禮花費誰扛？、過年該回誰家？" maxlength="40">
+            </div>
+
+            <div class="form-card">
+                <div class="form-card-title">📂 分類與顯示</div>
+                <span class="form-label">選擇分類</span>
+                <div class="chip-group" id="formCategoryChips">
+                    <span class="chip active" data-value="感情觀">感情觀</span>
+                    <span class="chip" data-value="金錢觀">金錢觀</span>
+                    <span class="chip" data-value="家事分工">家事分工</span>
+                    <span class="chip" data-value="婆媳問題">婆媳問題</span>
+                    <span class="chip" data-value="生活習慣">生活習慣</span>
+                    <span class="chip" data-value="教養觀念">教養觀念</span>
+                    <span class="chip" data-value="社交界線">社交界線</span>
+                    <span class="chip" data-value="其他">其他</span>
+                </div>
+                <span class="form-label" style="margin-top:14px">稱呼顯示</span>
+                <div class="chip-group" id="hideGenderChips">
+                    <span class="chip active" data-value="no">顯示稱呼</span>
+                    <span class="chip" data-value="yes">隱藏為 A方 / B方</span>
+                </div>
+                <p class="form-hint">隱藏稱呼可避免觀眾因性別產生偏見</p>
+                <input type="radio" name="hideGender" value="no" class="sr-only" checked>
+                <input type="radio" name="hideGender" value="yes" class="sr-only">
+            </div>
+
+            <div class="form-card">
+                <div class="form-card-title">📨 對方怎麼參與？</div>
+                <div class="chip-group" id="inviteMethodChips">
+                    <span class="chip active full-width" data-value="wait">等對方自己補充觀點</span>
+                    <span class="chip full-width" data-value="help">我幫對方寫（直接開戰，對方可更正）</span>
+                </div>
+                <input type="radio" name="inviteMethod" value="wait" class="sr-only" checked>
+                <input type="radio" name="inviteMethod" value="help" class="sr-only">
+            </div>
+
+            <div class="form-card">
+                <div class="form-card-title">⚔️ 雙方觀點</div>
+                <div class="form-side side-a">
+                    <div class="side-label">🔴 你的立場</div>
+                    <input type="text" class="form-input" id="myRole" placeholder="你的稱呼，例：女友、老公" value="女友">
+                    <textarea class="form-textarea" id="myView" placeholder="把事情經過跟你的想法寫出來，越詳細越好..."></textarea>
+                </div>
+                <div id="opponentSection">
+                    <div class="form-side side-b">
+                        <div class="side-label">🔵 對方立場</div>
+                        <input type="text" class="form-input" id="opponentRole" placeholder="對方稱呼，例：男友、老婆" value="男友">
+                        <textarea class="form-textarea" id="opponentView" placeholder="寫下你認為對方的想法，或留空等待對方補充..."></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="form-footer">
+            <button class="submit-btn" id="submitCaseBtn" type="button">
+                <span class="submit-btn-icon">🔥</span>
+                <span>開擂台 · 發布案件</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ---------- 模擬資料（保留你原本的風格）----------
+    let cases = JSON.parse(localStorage.getItem('cases')) || [
+        {
+            id: "c1",
+            category: "金錢觀",
+            title: "婚禮花費誰扛？",
+            hideGender: false,
+            sideA: { role: "老婆", text: "婚禮是兩個人的事，費用本來就應該各出一半。結果你爸媽說男方只要出金，婚宴場地跟婚照都要女方家出，這合理嗎？" },
+            sideB: { role: "老公", text: "我家剛買房負擔重，你家經濟比較寬裕，幫忙一下婚禮場地以後我們也會孝順你爸媽。" },
+            votes: { A: 228, B: 112 },
+            comments: [
+                { text: "結婚不是賣女兒，男方至少要有誠意吧", likes: 34 },
+                { text: "兩邊各退一步，開共同帳戶", likes: 89 },
+                { text: "建議婚前輔導", likes: 12 }
+            ],
+            createdAt: Date.now() - 63 * 86400000,
+            status: "active"
+        },
+        {
+            id: "c2",
+            category: "社交界線",
+            title: "單獨跟異性同事吃晚餐",
+            hideGender: false,
+            sideA: { role: "女友", text: "你跟那個女同事單獨去吃晚餐，吃完還去喝咖啡聊到十一點，有對象的人這樣合適嗎？" },
+            sideB: { role: "男友", text: "只是同事聊公事，又沒怎樣，妳太沒安全感了吧。" },
+            votes: { A: 101, B: 45 },
+            comments: [
+                { text: "避嫌是基本尊重", likes: 56 },
+                { text: "可以事先報備讓對方安心", likes: 28 }
+            ],
+            createdAt: Date.now() - 50 * 86400000,
+            status: "active"
+        },
+        {
+            id: "c3",
+            category: "婆媳問題",
+            title: "過年都在你家",
+            hideGender: false,
+            sideA: { role: "老婆", text: "每年過年都回你家，除夕跟你媽過，初二又要陪你媽回娘家，我爸媽年紀也大了..." },
+            sideB: { role: "老公", text: "傳統就這樣啊，而且平常假日也有陪你回去。" },
+            votes: { A: 203, B: 78 },
+            comments: [
+                { text: "輪流過年或各回各家", likes: 112 },
+                { text: "老公不願妥協就自己回娘家", likes: 47 }
+            ],
+            createdAt: Date.now() - 30 * 86400000,
+            status: "active"
+        }
+    ];
+
+    let currentCategory = "全部";
+    let currentSort = "hot";   // hot / new
+    let currentDetailCaseId = null;
+
+    const categoriesList = ["全部", "感情觀", "金錢觀", "家事分工", "婆媳問題", "生活習慣", "教養觀念", "社交界線", "其他"];
+
+    function saveData() {
+        localStorage.setItem('cases', JSON.stringify(cases));
+    }
+
+    function getHotScore(c) {
+        let totalVotes = c.votes.A + c.votes.B;
+        let totalLikes = c.comments.reduce((acc, cur) => acc + cur.likes, 0);
+        return totalVotes + totalLikes * 2;
+    }
+
+    function getFilteredAndSortedCases() {
+        let filtered = cases.filter(c => currentCategory === "全部" || c.category === currentCategory);
+        if (currentSort === "hot") {
+            return [...filtered].sort((a,b) => getHotScore(b) - getHotScore(a));
+        } else {
+            return [...filtered].sort((a,b) => b.createdAt - a.createdAt);
+        }
+    }
+
+    function renderCategories() {
+        const container = document.getElementById("categoryList");
+        container.innerHTML = categoriesList.map(cat => `
+            <div class="cat-item ${currentCategory === cat ? 'active' : ''}" data-cat="${cat}">${cat}</div>
+        `).join('');
+        document.querySelectorAll('.cat-item').forEach(el => {
+            el.addEventListener('click', (e) => {
+                currentCategory = el.dataset.cat;
+                renderCategories();
+                renderCases();
+            });
+        });
+    }
+
+    function refreshAfterCaseChange(caseId) {
+        if (currentDetailCaseId === caseId) {
+            renderCaseDetail(caseId);
+        }
+        renderCases();
+    }
+
+    window.voteForCase = (caseId, side) => {
+        const targetCase = cases.find(c => c.id === caseId);
+        if (targetCase) {
+            targetCase.votes[side]++;
+            saveData();
+            refreshAfterCaseChange(caseId);
+        }
+    };
+
+    window.likeComment = (caseId, commentIdx) => {
+        const targetCase = cases.find(c => c.id === caseId);
+        if (targetCase && targetCase.comments[commentIdx]) {
+            targetCase.comments[commentIdx].likes++;
+            saveData();
+            refreshAfterCaseChange(caseId);
+        }
+    };
+
+    window.addComment = (caseId) => {
+        const textarea = document.getElementById(`comment-input-${caseId}`);
+        const text = textarea.value.trim();
+        if (!text) return;
+        const targetCase = cases.find(c => c.id === caseId);
+        if (targetCase) {
+            targetCase.comments.push({ text: text, likes: 0 });
+            textarea.value = '';
+            saveData();
+            refreshAfterCaseChange(caseId);
+        }
+    };
+
+    function getCaseStats(c) {
+        const totalVotes = c.votes.A + c.votes.B;
+        const aPercent = totalVotes === 0 ? 50 : (c.votes.A / totalVotes * 100).toFixed(0);
+        const bPercent = totalVotes === 0 ? 50 : (c.votes.B / totalVotes * 100).toFixed(0);
+        const hotScore = getHotScore(c);
+        const displayRoleA = c.hideGender ? "A方" : c.sideA.role;
+        const displayRoleB = c.hideGender ? "B方" : c.sideB.role;
+        return { totalVotes, aPercent, bPercent, hotScore, displayRoleA, displayRoleB };
+    }
+
+    function openCaseDetail(caseId) {
+        currentDetailCaseId = caseId;
+        document.getElementById("caseDetailPage").classList.add("active");
+        renderCaseDetail(caseId);
+    }
+
+    function closeCaseDetail() {
+        currentDetailCaseId = null;
+        document.getElementById("caseDetailPage").classList.remove("active");
+    }
+
+    function renderCaseDetail(caseId) {
+        const c = cases.find(item => item.id === caseId);
+        const container = document.getElementById("caseDetailContainer");
+        if (!c) {
+            container.innerHTML = `<div style="text-align:center; padding:40px; color:#777">找不到此擂台</div>`;
+            return;
+        }
+
+        const { aPercent, bPercent, hotScore, displayRoleA, displayRoleB } = getCaseStats(c);
+        const bestComment = c.comments.length ? [...c.comments].sort((x, y) => y.likes - x.likes)[0] : null;
+        const bestLikeCount = bestComment ? bestComment.likes : 0;
+
+        container.innerHTML = `
+            <div class="card" style="margin-top:0; border:none;">
+                <div class="card-header">
+                    <span class="category-badge">${c.category}</span>
+                    <span class="time">${Math.floor((Date.now() - c.createdAt) / 86400000)}天前</span>
+                </div>
+                <div class="vs-title">${c.title}</div>
+                <div class="participants">👩 ${displayRoleA}  vs  👨 ${displayRoleB}</div>
+                <div class="opinions">
+                    <div class="opinion"><div class="role a">🔴 ${displayRoleA}</div><div class="text">${c.sideA.text}</div></div>
+                    <div class="opinion"><div class="role b">🔵 ${displayRoleB}</div><div class="text">${c.sideB.text}</div></div>
+                </div>
+                <div class="vote-area">
+                    <button class="vote-btn a-vote" onclick="voteForCase('${c.id}','A')">🔥 支持 ${displayRoleA} · ${c.votes.A}</button>
+                    <button class="vote-btn b-vote" onclick="voteForCase('${c.id}','B')">💧 支持 ${displayRoleB} · ${c.votes.B}</button>
+                </div>
+                <div class="stats">📊 投票結果 ${aPercent}% : ${bPercent}% &nbsp; 🔥 ${hotScore} 熱度 &nbsp; 💬 ${c.comments.length}</div>
+
+                <div class="comment-section">
+                    <div style="font-weight:600; font-size:13px;">🗣️ 觀眾勸架區</div>
+                    ${c.comments.length === 0 ? '<div style="color:#71767b; font-size:13px; padding:8px 0;">還沒有留言，成為第一個勸架的人吧</div>' : ''}
+                    ${c.comments.map((cm, idx) => `
+                        <div class="single-comment">
+                            <span>💬 ${cm.text}
+                            ${cm.likes === bestLikeCount && bestLikeCount > 0 ? '<span class="peace-king">🏆 勸架王</span>' : ''}
+                            </span>
+                            <button class="like-btn" onclick="likeComment('${c.id}', ${idx})">❤️ ${cm.likes}</button>
+                        </div>
+                    `).join('')}
+                    <textarea id="comment-input-${c.id}" placeholder="寫下你的公正建議...成為勸架王"></textarea>
+                    <button class="small-btn" onclick="addComment('${c.id}')">✍️ 送出勸架</button>
+                </div>
+            </div>
+        `;
+    }
+
+    function renderCases() {
+        const container = document.getElementById("caseListContainer");
+        const filteredCases = getFilteredAndSortedCases();
+        if (filteredCases.length === 0) {
+            container.innerHTML = `<div style="text-align:center; padding:40px; color:#777">⚡ 沒有擂台，發起一個吧</div>`;
+            return;
+        }
+
+        container.innerHTML = filteredCases.map(c => {
+            const { aPercent, bPercent, hotScore, displayRoleA, displayRoleB } = getCaseStats(c);
+            const topComment = c.comments.length
+                ? [...c.comments].sort((x, y) => y.likes - x.likes)[0]
+                : null;
+
+            return `
+                <div class="card card-preview" data-case-id="${c.id}" role="button" tabindex="0">
+                    <div class="card-header">
+                        <span class="category-badge">${c.category}</span>
+                        <span class="time">${Math.floor((Date.now() - c.createdAt) / 86400000)}天前</span>
+                    </div>
+                    <div class="vs-title">${c.title}</div>
+                    <div class="participants">👩 ${displayRoleA}  vs  👨 ${displayRoleB}</div>
+                    <div class="opinions">
+                        <div class="opinion"><div class="role a">🔴 ${displayRoleA}</div><div class="text preview">${c.sideA.text}</div></div>
+                        <div class="opinion"><div class="role b">🔵 ${displayRoleB}</div><div class="text preview">${c.sideB.text}</div></div>
+                    </div>
+                    <div class="stats">📊 投票結果 ${aPercent}% : ${bPercent}% &nbsp; 🔥 ${hotScore} 熱度 &nbsp; 💬 ${c.comments.length}</div>
+                    ${topComment ? `
+                        <div class="comment-preview">
+                            <span>💬 ${topComment.text.length > 28 ? topComment.text.slice(0, 28) + '…' : topComment.text}</span>
+                            <span>❤️ ${topComment.likes}</span>
+                        </div>
+                    ` : ''}
+                    <div class="enter-detail">點擊查看完整內容 · 參與投票與留言 →</div>
+                </div>
+            `;
+        }).join('');
+
+        container.querySelectorAll('.card-preview').forEach(card => {
+            card.addEventListener('click', () => openCaseDetail(card.dataset.caseId));
+            card.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    openCaseDetail(card.dataset.caseId);
+                }
+            });
+        });
+    }
+
+    // 表單相關函數
+    function showCreateForm() {
+        document.getElementById("createFormPage").classList.add("active");
+    }
+
+    function hideCreateForm() {
+        document.getElementById("createFormPage").classList.remove("active");
+    }
+
+    function getSelectedCategory() {
+        const active = document.querySelector('#formCategoryChips .chip.active');
+        return active ? active.dataset.value : '其他';
+    }
+
+    function bindChipGroup(containerId, radioName) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        container.querySelectorAll('.chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                container.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+                chip.classList.add('active');
+                if (radioName) {
+                    const radio = document.querySelector(`input[name="${radioName}"][value="${chip.dataset.value}"]`);
+                    if (radio) radio.checked = true;
+                    if (radioName === 'inviteMethod') updateOpponentSection();
+                }
+            });
+        });
+    }
+
+    function updateOpponentSection() {
+        const inviteMethod = document.querySelector('input[name="inviteMethod"]:checked').value;
+        const section = document.getElementById('opponentSection');
+        const opponentView = document.getElementById('opponentView');
+        if (inviteMethod === 'wait') {
+            section.style.opacity = '0.75';
+            opponentView.placeholder = '可留空，等待對方補充觀點...';
+        } else {
+            section.style.opacity = '1';
+            opponentView.placeholder = '寫下你認為對方的想法...';
+        }
+    }
+
+    function submitNewCase() {
+        const inviteMethod = document.querySelector('input[name="inviteMethod"]:checked').value;
+        const category = getSelectedCategory();
+        const hideGender = document.querySelector('input[name="hideGender"]:checked').value === 'yes';
+        const title = document.getElementById("caseTitle").value.trim();
+        const myRole = document.getElementById("myRole").value.trim() || "A方";
+        const myText = document.getElementById("myView").value.trim();
+        const opponentRole = document.getElementById("opponentRole").value.trim() || "B方";
+        let opponentText = document.getElementById("opponentView").value.trim();
+
+        if (!title) {
+            alert("請填寫擂台標題");
+            document.getElementById("caseTitle").focus();
+            return;
+        }
+
+        if (!myText) {
+            alert("請填寫你的觀點");
+            document.getElementById("myView").focus();
+            return;
+        }
+
+        if (inviteMethod === "wait" && !opponentText) {
+            opponentText = "等待對方補充觀點...";
+        }
+
+        if (!opponentText) {
+            alert("請填寫對方的觀點");
+            document.getElementById("opponentView").focus();
+            return;
+        }
+        
+        const newCase = {
+            id: Date.now().toString(),
+            category: category,
+            title: title,
+            hideGender: hideGender,
+            sideA: { role: myRole, text: myText },
+            sideB: { role: opponentRole, text: opponentText },
+            votes: { A: 0, B: 0 },
+            comments: [],
+            createdAt: Date.now(),
+            status: "active"
+        };
+        
+        cases.unshift(newCase);
+        saveData();
+        
+        // 切換回主畫面
+        hideCreateForm();
+        currentSort = "new";
+        renderCategories();
+        renderCases();
+        
+        // 清空表單
+        document.getElementById("caseTitle").value = "";
+        document.getElementById("myView").value = "";
+        document.getElementById("opponentView").value = "";
+        document.getElementById("myRole").value = "女友";
+        document.getElementById("opponentRole").value = "男友";
+        
+        // 更新 tab 樣式
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelector('.tab[data-sort="new"]').classList.add('active');
+    }
+
+    // 綁定事件
+    document.getElementById("openCreateModalBtn").addEventListener("click", showCreateForm);
+    document.getElementById("closeFormBtn").addEventListener("click", hideCreateForm);
+    document.getElementById("closeDetailBtn").addEventListener("click", closeCaseDetail);
+    document.getElementById("submitCaseBtn").addEventListener("click", submitNewCase);
+
+    // 綁定 tabs
+    function bindTabs() {
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                const sortType = tab.dataset.sort;
+                if (sortType === 'hot') currentSort = 'hot';
+                else currentSort = 'new';
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                renderCases();
+            });
+        });
+    }
+
+    bindChipGroup('formCategoryChips');
+    bindChipGroup('hideGenderChips', 'hideGender');
+    bindChipGroup('inviteMethodChips', 'inviteMethod');
+    updateOpponentSection();
+
+    renderCategories();
+    renderCases();
+    bindTabs();
+</script>
+</body>
+</html>
